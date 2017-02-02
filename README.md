@@ -4,7 +4,8 @@
 # `monad-metrics`
 
 This library defines a convenient wrapper and API for using [EKG][] metrics in
-your application.
+your application. It's heavily inspired by the metrics code that Taylor Fausak
+used in his Haskell application [blunt](https://github.com/tfausak/blunt).
 
 # Usage
 
