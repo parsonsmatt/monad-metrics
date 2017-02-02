@@ -38,6 +38,8 @@ module Control.Monad.Metrics
     , Resolution(..)
     ) where
 
+import Control.Monad (liftM)
+import Data.Monoid (mempty)
 import           Control.Monad.IO.Class
 import           Data.IORef
 import           Data.Map                       (Map)
@@ -51,6 +53,8 @@ import           System.Metrics.Counter         as Counter
 import           System.Metrics.Distribution    as Distribution
 import           System.Metrics.Gauge           as Gauge
 import           System.Metrics.Label           as Label
+
+import Prelude
 
 import           Control.Monad.Metrics.Internal
 
@@ -71,7 +75,7 @@ initializeWith metricsStore = do
     metricsDistributions <- newIORef mempty
     metricsGauges <- newIORef mempty
     metricsLabels <- newIORef mempty
-    pure Metrics{..}
+    return Metrics{..}
 
 -- | Initializes a 'Metrics' value, creating a new 'System.Metrics.Store'
 -- for it.
@@ -131,7 +135,7 @@ timed' resolution name action = do
     result <- action
     end <- liftIO $ getTime Monotonic
     distribution name (diffTime resolution start end)
-    pure result
+    return result
 
 -- | Record the time of executing the given action in seconds. Defers to
 -- 'timed''.
@@ -196,11 +200,11 @@ lookupOrCreate
     :: (MonadMetrics m, MonadIO m, Ord k)
     => (Metrics -> IORef (Map k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
-    ref <- fmap getter getMetrics
+    ref <- liftM getter getMetrics
     container <- liftIO $ readIORef ref
     case Map.lookup name container of
         Nothing -> do
-            c <- liftIO . creator name =<< fmap metricsStore getMetrics
+            c <- liftIO . creator name =<< liftM metricsStore getMetrics
             liftIO $ modifyIORef ref (Map.insert name c)
-            pure c
-        Just c -> pure c
+            return c
+        Just c -> return c

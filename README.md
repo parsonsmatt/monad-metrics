@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
-> -- stack --install-ghc runghc --package turtle --package markdown-unlit -- "-pgmL markdown-unlit"
+> -- stack --install-ghc runghc --package monad-metrics --package turtle --package markdown-unlit -- "-pgmL markdown-unlit"
 
 # `monad-metrics`
 
