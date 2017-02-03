@@ -66,6 +66,12 @@ import           Control.Monad.Metrics.Internal
 class MonadMetrics m where
     getMetrics :: m Metrics
 
+class HasMetrics r where
+    metrics :: Functor f => (a -> f Metrics) -> r -> f Metrics
+
+newtype MetricT m a = MetricT (m a)
+
+instance (MonadReader r m)
 -- | Initializes a 'Metrics' value with the given 'System.Metrics.Store'.
 --
 -- Since 0.1.0.0
