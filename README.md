@@ -26,7 +26,7 @@ We'll need to start with the import/pragma boilerplate:
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 import qualified Control.Monad.Metrics as Metrics
-import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics)
+import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..))
 import           Control.Monad.Reader
 import qualified System.Metrics        as EKG
 ```
@@ -68,6 +68,23 @@ instance MonadMetrics (ReaderT Config IO) where
 ```
 
 Now, you're off to the races! Let's record some metrics.
+
+If you're after a really simple embedding, you can use `run` or `run'`:
+
+```haskell
+simple :: Int -> IO ()
+simple i = 
+    Metrics.run $ do
+        metrics <- Metrics.getMetrics
+        Metrics.gauge "Simple" i
+        forM_ [1..i] $ \_ -> do
+            Metrics.increment "Count!"
+
+gettingThere :: IO ()
+gettingThere = 
+    Metrics.run' (\metrics -> Config metrics) $ do
+        liftIO $ putStrLn "it accepts a constructor"
+```
 
 ### Measure!
 

@@ -1,6 +1,12 @@
+{-# LANGUAGE DefaultSignatures          #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 {-|
 Module      : Control.Monad.Metrics
@@ -21,9 +27,10 @@ module Control.Monad.Metrics
     ( -- * The Type Class
       MonadMetrics(..)
       -- * Initializing
-    , Metrics
     , initialize
     , initializeWith
+    , run
+    , run'
       -- * Collecting Metrics
     , increment
     , counter
@@ -36,16 +43,24 @@ module Control.Monad.Metrics
     , label
     , label'
     , Resolution(..)
+    -- * The Metrics Type
+    , Metrics
+    , metricsCounters
+    , metricsGauges
+    , metricsLabels
+    , metricsStore
     ) where
 
-import Control.Monad (liftM)
-import Data.Monoid (mempty)
-import           Control.Monad.IO.Class
+import           Control.Monad.IO.Class         (MonadIO (..))
+import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
+import           Control.Monad.Trans            (MonadTrans (..))
 import           Data.IORef
 import           Data.Map                       (Map)
 import qualified Data.Map                       as Map
+import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
+import           Lens.Micro
 import           System.Clock                   (Clock (..), TimeSpec (..),
                                                  getTime)
 import qualified System.Metrics                 as EKG
@@ -54,7 +69,7 @@ import           System.Metrics.Distribution    as Distribution
 import           System.Metrics.Gauge           as Gauge
 import           System.Metrics.Label           as Label
 
-import Prelude
+import           Prelude
 
 import           Control.Monad.Metrics.Internal
 
@@ -63,24 +78,54 @@ import           Control.Monad.Metrics.Internal
 -- field in the environment is the 'Metrics' data.
 --
 -- Since v0.1.0.0
-class MonadMetrics m where
+class Monad m => MonadMetrics m where
     getMetrics :: m Metrics
 
-class HasMetrics r where
-    metrics :: Functor f => (a -> f Metrics) -> r -> f Metrics
+instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m)) => MonadMetrics (t m) where
+  getMetrics = lift getMetrics
 
-newtype MetricT m a = MetricT (m a)
+instance Monad m => MonadMetrics (ReaderT Metrics m) where
+    getMetrics = ask
 
-instance (MonadReader r m)
+-- | Enhances the base monad with metrics. This works for very simple
+-- cases, where you don't have a 'Reader' involved yet. If your stack
+-- already has a 'Reader', then you'll get some annoying type problems with
+-- this. Switch over to 'run'', or alternatively, define your own
+-- 'MonadMetrics' instance.
+--
+-- Since 0.1.0.0
+run :: MonadIO m => ReaderT Metrics m a -> m a
+run = run' id
+
+-- | Adds metric recording capabilities to the given action. The first
+-- parameter is a function which accepts a 'Metrics' value and creates the
+-- final @r@ value to be used in the action. This is useful when you have
+-- a preexisting 'ReaderT' in your stack, and you want to enhance it with
+-- metrics.
+--
+-- @
+-- data Config = Config { size :: Int, metrics' :: Metrics }
+--
+-- main = 'runWithMetrics' (Config 10) $ do
+--     num <- asks size
+--     forM_ [1 .. size] \_ -> Metrics.increment "foo"
+-- @
+--
+-- Since 0.1.0.0
+run' :: MonadIO m => (Metrics -> r) -> ReaderT r m a -> m a
+run' k action = do
+    m <- liftIO initialize
+    runReaderT action (k m)
+
 -- | Initializes a 'Metrics' value with the given 'System.Metrics.Store'.
 --
 -- Since 0.1.0.0
 initializeWith :: EKG.Store -> IO Metrics
-initializeWith metricsStore = do
-    metricsCounters <- newIORef mempty
-    metricsDistributions <- newIORef mempty
-    metricsGauges <- newIORef mempty
-    metricsLabels <- newIORef mempty
+initializeWith _metricsStore = do
+    _metricsCounters <- newIORef mempty
+    _metricsDistributions <- newIORef mempty
+    _metricsGauges <- newIORef mempty
+    _metricsLabels <- newIORef mempty
     return Metrics{..}
 
 -- | Initializes a 'Metrics' value, creating a new 'System.Metrics.Store'
@@ -101,7 +146,7 @@ increment name = counter name 1
 -- Since v0.1.0.0
 counter' :: (MonadIO m, MonadMetrics m, Integral int) => Text -> int -> m ()
 counter' =
-    modifyMetric Counter.add fromIntegral EKG.createCounter metricsCounters
+    modifyMetric Counter.add fromIntegral EKG.createCounter _metricsCounters
 
 -- | A type specialized version of 'counter'' to avoid ambiguous type
 -- errors.
@@ -115,14 +160,14 @@ counter = counter'
 -- Since v0.1.0.0
 distribution :: (MonadIO m, MonadMetrics m) => Text -> Double -> m ()
 distribution =
-    modifyMetric Distribution.add id EKG.createDistribution metricsDistributions
+    modifyMetric Distribution.add id EKG.createDistribution _metricsDistributions
 
 -- | Set the value of the named 'System.Metrics.Distribution.Gauge'.
 --
 -- Since v0.1.0.0
 gauge' :: (MonadIO m, MonadMetrics m, Integral int) => Text -> int -> m ()
 gauge' =
-    modifyMetric Gauge.set fromIntegral EKG.createGauge metricsGauges
+    modifyMetric Gauge.set fromIntegral EKG.createGauge _metricsGauges
 
 -- | A type specialized version of 'gauge'' to avoid ambiguous types.
 --
@@ -151,7 +196,7 @@ timed :: (MonadIO m, MonadMetrics m) => Text -> m a -> m a
 timed = timed' Seconds
 
 label :: (MonadIO m, MonadMetrics m) => Text -> Text -> m ()
-label = modifyMetric Label.set id EKG.createLabel metricsLabels
+label = modifyMetric Label.set id EKG.createLabel _metricsLabels
 
 label' :: (MonadIO m, MonadMetrics m, Show a) => Text -> a -> m ()
 label' l = label l . Text.pack . show
@@ -203,14 +248,14 @@ modifyMetric adder converter creator getter name value = do
     liftIO $ adder bar (converter value)
 
 lookupOrCreate
-    :: (MonadMetrics m, MonadIO m, Ord k)
+    :: (Functor m, MonadMetrics m, MonadIO m, Ord k)
     => (Metrics -> IORef (Map k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
-    ref <- liftM getter getMetrics
+    ref <- fmap getter getMetrics
     container <- liftIO $ readIORef ref
     case Map.lookup name container of
         Nothing -> do
-            c <- liftIO . creator name =<< liftM metricsStore getMetrics
+            c <- liftIO . creator name =<< fmap _metricsStore getMetrics
             liftIO $ modifyIORef ref (Map.insert name c)
             return c
         Just c -> return c
