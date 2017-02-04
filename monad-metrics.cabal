@@ -1,7 +1,7 @@
 name:                monad-metrics
 version:             0.1.0.1
 synopsis:            A convenient wrapper around EKG metrics
-description:         Please see README.md
+description:         A convenient wrapper for collecting application metrics. Please see the README.md for more information.
 homepage:            https://github.com/parsonsmatt/monad-metrics#readme
 license:             MIT
 license-file:        LICENSE
