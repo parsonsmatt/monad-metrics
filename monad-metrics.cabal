@@ -1,5 +1,5 @@
 name:                monad-metrics
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            A convenient wrapper around EKG metrics
 description:         Please see README.md
 homepage:            https://github.com/parsonsmatt/monad-metrics#readme
