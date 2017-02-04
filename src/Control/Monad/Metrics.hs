@@ -18,8 +18,10 @@ Maintainer  : parsonsmatt@gmail.com
 Stability   : experimental
 Portability : POSIX
 
-This module presents an easy interface that you can use to collect metrics about your application.
-It uses EKG under the hood and is inspired by Taylor Fausak's blunt application.
+This module presents an easy interface that you can use to collect metrics
+about your application.  It uses EKG from "System.Metrics" under the hood
+and is inspired by Taylor Fausak's <https://github.com/tfausak/blunt blunt>
+application.
 
 This module is designed to be imported qualified.
 -}
@@ -27,11 +29,13 @@ module Control.Monad.Metrics
     ( -- * The Type Class
       MonadMetrics(..)
       -- * Initializing
+      -- $initializing
     , initialize
     , initializeWith
     , run
     , run'
       -- * Collecting Metrics
+      -- $collecting
     , increment
     , counter
     , counter'
@@ -44,6 +48,7 @@ module Control.Monad.Metrics
     , label'
     , Resolution(..)
     -- * The Metrics Type
+    -- $metrictype
     , Metrics
     , metricsCounters
     , metricsGauges
@@ -74,19 +79,32 @@ import           Prelude
 
 import           Control.Monad.Metrics.Internal
 
--- | A class is an instance of 'MonadMetrics' if it can provide a 'Metrics'
+-- | A type can be an instance of 'MonadMetrics' if it can provide a 'Metrics'
 -- somehow. Commonly, this will be implemented as a 'ReaderT' where some
 -- field in the environment is the 'Metrics' data.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 class Monad m => MonadMetrics m where
     getMetrics :: m Metrics
 
 instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m)) => MonadMetrics (t m) where
-  getMetrics = lift getMetrics
+    getMetrics = lift getMetrics
 
 instance Monad m => MonadMetrics (ReaderT Metrics m) where
     getMetrics = ask
+
+-- $initializing
+-- This library tends to provide simple functions with plain names and
+-- generalized functions with apostrophes. When initializing the metrics,
+-- you can use 'initialize' if you don't need fine control over the store,
+-- or you can use 'initializeWith' if your application already has a store
+-- that it uses.
+--
+-- Likewise, we provide 'run' for the simplest case, and 'run'' for the
+-- more complex case where you have some larger type.
+--
+-- The most flexible way to use the library is to implement the
+-- 'MonadMetrics' class.
 
 -- | Enhances the base monad with metrics. This works for very simple
 -- cases, where you don't have a 'Reader' involved yet. If your stack
@@ -94,7 +112,7 @@ instance Monad m => MonadMetrics (ReaderT Metrics m) where
 -- this. Switch over to 'run'', or alternatively, define your own
 -- 'MonadMetrics' instance.
 --
--- Since 0.1.0.0
+-- */Since v0.1.0.0/
 run :: MonadIO m => ReaderT Metrics m a -> m a
 run = run' id
 
@@ -112,7 +130,7 @@ run = run' id
 --     forM_ [1 .. size] \_ -> Metrics.increment "foo"
 -- @
 --
--- Since 0.1.0.0
+-- */Since v0.1.0.0/
 run' :: MonadIO m => (Metrics -> r) -> ReaderT r m a -> m a
 run' k action = do
     m <- liftIO initialize
@@ -120,7 +138,7 @@ run' k action = do
 
 -- | Initializes a 'Metrics' value with the given 'System.Metrics.Store'.
 --
--- Since 0.1.0.0
+-- */Since v0.1.0.0/
 initializeWith :: EKG.Store -> IO Metrics
 initializeWith _metricsStore = do
     _metricsCounters <- newIORef mempty
@@ -132,19 +150,30 @@ initializeWith _metricsStore = do
 -- | Initializes a 'Metrics' value, creating a new 'System.Metrics.Store'
 -- for it.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 initialize :: IO Metrics
 initialize = EKG.newStore >>= initializeWith
 
+-- $collecting
+-- As with initialization, the library provides "common case" functions
+-- with a plain name and generalized functions with an apostrophe.
+--
+-- * 'increment', 'counter', 'counter''
+-- * 'gauge', 'gauge''
+-- * 'timed', 'timed''
+-- * 'label', 'label''
+--
+-- Only 'distribution' isn't generalized.
+
 -- | Increment the named counter by 1.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 increment :: (MonadIO m, MonadMetrics m) => Text -> m ()
 increment name = counter name 1
 
 -- | Adds the value to the named 'System.Metrics.Counter.Counter'.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 counter' :: (MonadIO m, MonadMetrics m, Integral int) => Text -> int -> m ()
 counter' =
     modifyMetric Counter.add fromIntegral EKG.createCounter _metricsCounters
@@ -152,27 +181,27 @@ counter' =
 -- | A type specialized version of 'counter'' to avoid ambiguous type
 -- errors.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 counter :: (MonadIO m, MonadMetrics m) => Text -> Int -> m ()
 counter = counter'
 
 -- | Add the value to the named 'System.Metrics.Distribution.Distribution'.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 distribution :: (MonadIO m, MonadMetrics m) => Text -> Double -> m ()
 distribution =
     modifyMetric Distribution.add id EKG.createDistribution _metricsDistributions
 
 -- | Set the value of the named 'System.Metrics.Distribution.Gauge'.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 gauge' :: (MonadIO m, MonadMetrics m, Integral int) => Text -> int -> m ()
 gauge' =
     modifyMetric Gauge.set fromIntegral EKG.createGauge _metricsGauges
 
 -- | A type specialized version of 'gauge'' to avoid ambiguous types.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 gauge :: (MonadIO m, MonadMetrics m) => Text -> Int -> m ()
 gauge = gauge'
 
@@ -180,7 +209,7 @@ gauge = gauge'
 -- stored in a 'System.Metrics.Disribution.Distribution' and is converted
 -- to the specified 'Resolution'.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 timed' :: (MonadIO m, MonadMetrics m) => Resolution -> Text -> m a -> m a
 timed' resolution name action = do
     start <- liftIO $ getTime Monotonic
@@ -192,15 +221,27 @@ timed' resolution name action = do
 -- | Record the time of executing the given action in seconds. Defers to
 -- 'timed''.
 --
--- Since v0.1.0.0
+-- * /Since v0.1.0.0/
 timed :: (MonadIO m, MonadMetrics m) => Text -> m a -> m a
 timed = timed' Seconds
 
+-- | Set the 'Label' to the given 'Text' value.
+--
+-- * /Since v0.1.0.0/
 label :: (MonadIO m, MonadMetrics m) => Text -> Text -> m ()
 label = modifyMetric Label.set id EKG.createLabel _metricsLabels
 
+-- | Set the 'Label' to the 'Show'n value of whatever you pass in.
+--
+-- * /Since v0.1.0.0/
 label' :: (MonadIO m, MonadMetrics m, Show a) => Text -> a -> m ()
 label' l = label l . Text.pack . show
+
+-- $metrictype
+-- The 'Metric' type contains an 'IORef' to a 'Map' from 'Text' labels to
+-- the various counters, and a 'EKG.Store' to register them with. If you
+-- must use the 'Metric' value directly, then you are recommended to use
+-- the lenses provided for compatibility.
 
 -------------------------------------------------------------------------------
 
