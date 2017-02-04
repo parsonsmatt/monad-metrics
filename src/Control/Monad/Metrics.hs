@@ -51,6 +51,7 @@ module Control.Monad.Metrics
     , metricsStore
     ) where
 
+import           Control.Monad                  (liftM)
 import           Control.Monad.IO.Class         (MonadIO (..))
 import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
 import           Control.Monad.Trans            (MonadTrans (..))
@@ -248,14 +249,14 @@ modifyMetric adder converter creator getter name value = do
     liftIO $ adder bar (converter value)
 
 lookupOrCreate
-    :: (Functor m, MonadMetrics m, MonadIO m, Ord k)
+    :: (MonadMetrics m, MonadIO m, Ord k)
     => (Metrics -> IORef (Map k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
-    ref <- fmap getter getMetrics
+    ref <- liftM getter getMetrics
     container <- liftIO $ readIORef ref
     case Map.lookup name container of
         Nothing -> do
-            c <- liftIO . creator name =<< fmap _metricsStore getMetrics
+            c <- liftIO . creator name =<< liftM _metricsStore getMetrics
             liftIO $ modifyIORef ref (Map.insert name c)
             return c
         Just c -> return c
