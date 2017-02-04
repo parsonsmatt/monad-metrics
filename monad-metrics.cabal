@@ -2,7 +2,7 @@ name:                monad-metrics
 version:             0.1.0.1
 synopsis:            A convenient wrapper around EKG metrics
 description:         A convenient wrapper for collecting application metrics. Please see the README.md for more information.
-homepage:            https://github.com/parsonsmatt/monad-metrics#readme
+homepage:            https://github.com/sellerlabs/monad-metrics#readme
 license:             MIT
 license-file:        LICENSE
 author:              Matthew Parsons
@@ -38,4 +38,4 @@ test-suite monad-metrics-test
 
 source-repository head
   type:     git
-  location: https://github.com/parsonsmatt/monad-metrics
+  location: https://github.com/sellerlabs/monad-metrics
