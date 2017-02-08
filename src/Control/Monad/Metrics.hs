@@ -215,7 +215,7 @@ timed' resolution name action = do
     start <- liftIO $ getTime Monotonic
     result <- action
     end <- liftIO $ getTime Monotonic
-    distribution name (diffTime resolution start end)
+    distribution name (diffTime resolution end start)
     return result
 
 -- | Record the time of executing the given action in seconds. Defers to
