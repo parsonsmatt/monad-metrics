@@ -32,6 +32,8 @@ main = do
 checkTravisTag :: IO ()
 checkTravisTag = do
   maybeTag <- Environment.lookupEnv "TRAVIS_TAG"
+  putStr "TRAVIS_TAG: "
+  print maybeTag
   Monad.when
     (Maybe.isNothing maybeTag)
     (do putStrLn "The $TRAVIS_TAG variable is empty."
