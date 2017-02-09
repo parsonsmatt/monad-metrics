@@ -21,6 +21,7 @@ import           Data.IORef
 import           Data.Map                    (Map)
 import           Data.Text                   (Text)
 import           Lens.Micro
+import           System.Clock                (TimeSpec (..))
 import           System.Metrics              (Store)
 import           System.Metrics.Counter      (Counter)
 import           System.Metrics.Distribution (Distribution)
@@ -81,3 +82,34 @@ data Resolution
     | Hours
     | Days
     deriving (Eq, Show, Ord, Enum)
+
+diffTime :: Resolution -> TimeSpec -> TimeSpec -> Double
+diffTime res (TimeSpec seca nseca) (TimeSpec secb nsecb) =
+    let sec = seca - secb
+        nsec = nseca - nsecb
+     in convertTimeSpecTo res (TimeSpec sec nsec)
+
+convertTimeSpecTo :: Resolution -> TimeSpec -> Double
+convertTimeSpecTo res (TimeSpec secs' nsecs') =
+    case res of
+        Nanoseconds  -> nsecs + sToNs secs
+        Microseconds -> nsToUs nsecs + sToUs secs
+        Milliseconds -> nsToMs nsecs + sToMs secs
+        Seconds      -> nsToS nsecs + secs
+        Minutes      -> sToMin (nsToS nsecs + secs)
+        Hours        -> sToHour (nsToS nsecs + secs)
+        Days         -> sToDay (nsToS nsecs + secs)
+  where
+    nsecs = fromIntegral nsecs'
+    secs = fromIntegral secs'
+
+nsToUs, nsToMs, nsToS, sToMin, sToHour, sToDay, sToNs, sToUs, sToMs :: Double -> Double
+nsToUs = (/ 10^3)
+nsToMs = (/ 10^6)
+nsToS = (/ 10^9)
+sToMin = (/ 60)
+sToHour = sToMin . sToMin
+sToDay = (/ 24) . sToHour
+sToNs = (* 10^9)
+sToUs = (* 10^6)
+sToMs = (* 10^3)
