@@ -1,4 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes      #-}
+{-# LANGUAGE RecordWildCards #-}
 
 {-|
 Module      : Control.Monad.Metrics.Internal
@@ -16,11 +17,10 @@ changes in here will /not/ be reflected in the major API version.
 -}
 module Control.Monad.Metrics.Internal where
 
-import           Control.Monad.Reader        (asks)
 import           Data.IORef
 import           Data.Map                    (Map)
 import           Data.Text                   (Text)
-import           Lens.Micro
+import           Lens.Micro                  (Lens')
 import           System.Clock                (TimeSpec (..))
 import           System.Metrics              (Store)
 import           System.Metrics.Counter      (Counter)
@@ -87,7 +87,7 @@ diffTime :: Resolution -> TimeSpec -> TimeSpec -> Double
 diffTime res (TimeSpec seca nseca) (TimeSpec secb nsecb) =
     let sec = seca - secb
         nsec = nseca - nsecb
-     in convertTimeSpecTo res (TimeSpec sec nsec)
+     in convertTimeSpecTo res TimeSpec {..}
 
 convertTimeSpecTo :: Resolution -> TimeSpec -> Double
 convertTimeSpecTo res (TimeSpec secs' nsecs') =
@@ -104,12 +104,12 @@ convertTimeSpecTo res (TimeSpec secs' nsecs') =
     secs = fromIntegral secs'
 
 nsToUs, nsToMs, nsToS, sToMin, sToHour, sToDay, sToNs, sToUs, sToMs :: Double -> Double
-nsToUs = (/ 10^3)
-nsToMs = (/ 10^6)
-nsToS = (/ 10^9)
+nsToUs = (/ 10^(3 :: Int))
+nsToMs = (/ 10^(6 :: Int))
+nsToS = (/ 10^(9 :: Int))
 sToMin = (/ 60)
 sToHour = sToMin . sToMin
 sToDay = (/ 24) . sToHour
-sToNs = (* 10^9)
-sToUs = (* 10^6)
-sToMs = (* 10^3)
+sToNs = (* 10^(9 :: Int))
+sToUs = (* 10^(6 :: Int))
+sToMs = (* 10^(3 :: Int))
