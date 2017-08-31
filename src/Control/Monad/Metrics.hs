@@ -69,6 +69,7 @@ import qualified Data.Text                      as Text
 import           Lens.Micro
 import           System.Clock                   (Clock (..), TimeSpec (..),
                                                  getTime)
+import           System.IO.Unsafe               (unsafeInterleaveIO)
 import qualified System.Metrics                 as EKG
 import           System.Metrics.Counter         as Counter
 import           System.Metrics.Distribution    as Distribution
@@ -264,9 +265,14 @@ lookupOrCreate
 lookupOrCreate getter creator name = do
     ref <- liftM getter getMetrics
     container <- liftIO $ readIORef ref
-    case Map.lookup name container of
-        Nothing -> do
-            c <- liftIO . creator name =<< liftM _metricsStore getMetrics
-            liftIO $ modifyIORef ref (Map.insert name c)
-            return c
-        Just c -> return c
+    -- unsafeInterleaveIO is used here to defer creating the metric into
+    -- the 'atomicModifyIORef'' function. We lazily create the value here,
+    -- and the resulting IO action only gets run to create the metric when
+    -- the named metric is not present in the map.
+    newMetric <- liftIO . unsafeInterleaveIO . creator name =<< liftM _metricsStore getMetrics
+    liftIO $ atomicModifyIORef' ref (\container ->
+        case Map.lookup name container of
+            Nothing ->
+                (newMetric, Map.insert name newMetric container)
+            Just metric ->
+                (metric, container))
