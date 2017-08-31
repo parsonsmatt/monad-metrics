@@ -1,12 +1,6 @@
-{-# LANGUAGE DefaultSignatures          #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE FunctionalDependencies     #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Module      : Control.Monad.Metrics
@@ -66,9 +60,7 @@ import qualified Data.Map                       as Map
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
-import           Lens.Micro
-import           System.Clock                   (Clock (..), TimeSpec (..),
-                                                 getTime)
+import           System.Clock                   (Clock (..), getTime)
 import qualified System.Metrics                 as EKG
 import           System.Metrics.Counter         as Counter
 import           System.Metrics.Distribution    as Distribution

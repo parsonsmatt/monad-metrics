@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-
 {-|
 Module      : Control.Monad.Metrics.Internal
 Description : An easy interface to recording metrics.
@@ -16,7 +14,6 @@ changes in here will /not/ be reflected in the major API version.
 -}
 module Control.Monad.Metrics.Internal where
 
-import           Control.Monad.Reader        (asks)
 import           Data.IORef
 import           Data.Map                    (Map)
 import           Data.Text                   (Text)
@@ -85,9 +82,9 @@ data Resolution
 
 diffTime :: Resolution -> TimeSpec -> TimeSpec -> Double
 diffTime res (TimeSpec seca nseca) (TimeSpec secb nsecb) =
-    let sec = seca - secb
-        nsec = nseca - nsecb
-     in convertTimeSpecTo res (TimeSpec sec nsec)
+    let secs = seca - secb
+        nsecs = nseca - nsecb
+     in convertTimeSpecTo res (TimeSpec secs nsecs)
 
 convertTimeSpecTo :: Resolution -> TimeSpec -> Double
 convertTimeSpecTo res (TimeSpec secs' nsecs') =
@@ -104,12 +101,12 @@ convertTimeSpecTo res (TimeSpec secs' nsecs') =
     secs = fromIntegral secs'
 
 nsToUs, nsToMs, nsToS, sToMin, sToHour, sToDay, sToNs, sToUs, sToMs :: Double -> Double
-nsToUs = (/ 10^3)
-nsToMs = (/ 10^6)
-nsToS = (/ 10^9)
+nsToUs = (/ 10^(3 :: Int))
+nsToMs = (/ 10^(6 :: Int))
+nsToS = (/ 10^(9 :: Int))
 sToMin = (/ 60)
 sToHour = sToMin . sToMin
 sToDay = (/ 24) . sToHour
-sToNs = (* 10^9)
-sToUs = (* 10^6)
-sToMs = (* 10^3)
+sToNs = (* 10^(9 :: Int))
+sToUs = (* 10^(6 :: Int))
+sToMs = (* 10^(3 :: Int))
