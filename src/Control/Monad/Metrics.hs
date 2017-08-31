@@ -264,7 +264,6 @@ lookupOrCreate
     => (Metrics -> IORef (Map k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
     ref <- liftM getter getMetrics
-    container <- liftIO $ readIORef ref
     -- unsafeInterleaveIO is used here to defer creating the metric into
     -- the 'atomicModifyIORef'' function. We lazily create the value here,
     -- and the resulting IO action only gets run to create the metric when
