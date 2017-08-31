@@ -273,6 +273,6 @@ lookupOrCreate getter creator name = do
     liftIO $ atomicModifyIORef' ref (\container ->
         case Map.lookup name container of
             Nothing ->
-                (newMetric, Map.insert name newMetric container)
+                (Map.insert name newMetric container, newMetric)
             Just metric ->
-                (metric, container))
+                (container, metric))
