@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-
 {-|
 Module      : Control.Monad.Metrics.Internal
 Description : An easy interface to recording metrics.
