@@ -1,5 +1,5 @@
 name:                monad-metrics
-version:             0.1.0.2
+version:             0.2.0.0
 synopsis:            A convenient wrapper around EKG metrics
 description:         A convenient wrapper for collecting application metrics. Please see the README.md for more information.
 homepage:            https://github.com/sellerlabs/monad-metrics#readme
