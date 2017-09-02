@@ -2,9 +2,12 @@
 
 ## Upcoming
 
+- Make `timed` and `timed'` require a `MonadMask` constraint for bracketing.
+
 ## v0.1.1.0
 
-Make `timed` and `timed'` require a `MonadMask` constraint for bracketing.
+- [#7](https://github.com/sellerlabs/monad-metrics/pull/7) Switch `Map` to `HashMap`; [~4x faster to look up](https://github.com/sellerlabs/monad-metrics/pull/8)
+- Fix a potential race condition when registering new metrics.
 
 ## v0.1.0.2
 
