@@ -104,6 +104,22 @@ matrix:
         - ghc-8.0.1
         sources:
         - hvr-ghc
+  - env: BUILD=stack ARGS="--resolver lts-8"
+    compiler: ": #stack 8.0.2"
+    addons:
+      apt:
+        packages:
+        - ghc-8.0.2
+        sources:
+        - hvr-ghc
+  - env: BUILD=stack ARGS="--resolver lts-9"
+    compiler: ": #stack 8.0.2"
+    addons:
+      apt:
+        packages:
+        - ghc-8.0.2
+        sources:
+        - hvr-ghc
   - env: BUILD=stack ARGS="--resolver nightly"
     compiler: ": #stack nightly"
     addons:
@@ -119,6 +135,15 @@ matrix:
     os: osx
   - env: BUILD=stack ARGS="--resolver lts-5"
     compiler: ": #stack 7.10.3 osx"
+    os: osx
+  - env: BUILD=stack ARGS="--resolver lts-7"
+    compiler: ": #stack 8.0.1 osx"
+    os: osx
+  - env: BUILD=stack ARGS="--resolver lts-8"
+    compiler: ": #stack 8.0.1 osx"
+    os: osx
+  - env: BUILD=stack ARGS="--resolver lts-9"
+    compiler: ": #stack 8.0.2 osx"
     os: osx
   - env: BUILD=stack ARGS="--resolver nightly"
     compiler: ": #stack nightly osx"
