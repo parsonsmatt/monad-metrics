@@ -1,12 +1,6 @@
-{-# LANGUAGE DefaultSignatures          #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE FunctionalDependencies     #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Module      : Control.Monad.Metrics
@@ -62,8 +56,9 @@ import           Control.Monad.IO.Class         (MonadIO (..))
 import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
 import           Control.Monad.Trans            (MonadTrans (..))
 import           Data.IORef
-import           Data.Map                       (Map)
-import qualified Data.Map                       as Map
+import           Data.Hashable                  (Hashable)
+import           Data.HashMap.Strict            (HashMap)
+import qualified Data.HashMap.Strict            as HashMap
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
@@ -237,7 +232,7 @@ label' :: (MonadIO m, MonadMetrics m, Show a) => Text -> a -> m ()
 label' l = label l . Text.pack . show
 
 -- $metrictype
--- The 'Metric' type contains an 'IORef' to a 'Map' from 'Text' labels to
+-- The 'Metric' type contains an 'IORef' to a 'HashMap' from 'Text' labels to
 -- the various counters, and a 'EKG.Store' to register them with. If you
 -- must use the 'Metric' value directly, then you are recommended to use
 -- the lenses provided for compatibility.
@@ -249,7 +244,7 @@ modifyMetric
     => (t -> t1 -> IO b) -- ^ The action to add a value to a metric.
     -> (t2 -> t1) -- ^ A conversion function from input to metric value.
     -> (Text -> EKG.Store -> IO t) -- ^ The function for creating a new metric.
-    -> (Metrics -> IORef (Map Text t)) -- ^ A way of getting the current metrics.
+    -> (Metrics -> IORef (HashMap Text t)) -- ^ A way of getting the current metrics.
     -> Text -- ^ The name of the metric to use.
     -> t2 -- ^ The value the end user can provide.
     -> m b
@@ -258,14 +253,14 @@ modifyMetric adder converter creator getter name value = do
     liftIO $ adder bar (converter value)
 
 lookupOrCreate
-    :: (MonadMetrics m, MonadIO m, Ord k)
-    => (Metrics -> IORef (Map k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
+    :: (MonadMetrics m, MonadIO m, Eq k, Hashable k)
+    => (Metrics -> IORef (HashMap k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
     ref <- liftM getter getMetrics
     container <- liftIO $ readIORef ref
-    case Map.lookup name container of
+    case HashMap.lookup name container of
         Nothing -> do
             c <- liftIO . creator name =<< liftM _metricsStore getMetrics
-            liftIO $ modifyIORef ref (Map.insert name c)
+            liftIO $ modifyIORef ref (HashMap.insert name c)
             return c
         Just c -> return c

@@ -1,5 +1,4 @@
-{-# LANGUAGE RankNTypes      #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
 
 {-|
 Module      : Control.Monad.Metrics.Internal
@@ -17,8 +16,8 @@ changes in here will /not/ be reflected in the major API version.
 -}
 module Control.Monad.Metrics.Internal where
 
+import           Data.HashMap.Strict         (HashMap)
 import           Data.IORef
-import           Data.Map                    (Map)
 import           Data.Text                   (Text)
 import           Lens.Micro                  (Lens')
 import           System.Clock                (TimeSpec (..))
@@ -32,35 +31,35 @@ import           System.Metrics.Label        (Label)
 --
 -- * /Since v0.1.0.0/
 data Metrics = Metrics
-    { _metricsCounters      :: IORef (Map Text Counter)
-    , _metricsGauges        :: IORef (Map Text Gauge)
-    , _metricsDistributions :: IORef (Map Text Distribution)
-    , _metricsLabels        :: IORef (Map Text Label)
+    { _metricsCounters      :: IORef (HashMap Text Counter)
+    , _metricsGauges        :: IORef (HashMap Text Gauge)
+    , _metricsDistributions :: IORef (HashMap Text Distribution)
+    , _metricsLabels        :: IORef (HashMap Text Label)
     , _metricsStore         :: Store
     }
 
 -- | A lens into the 'Counter's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsCounters :: Lens' Metrics (IORef (Map Text Counter))
+metricsCounters :: Lens' Metrics (IORef (HashMap Text Counter))
 metricsCounters f (Metrics c g d l s) = fmap (\c' -> Metrics c' g d l s) (f c)
 
 -- | A lens into the 'Gauge's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsGauges :: Lens' Metrics (IORef (Map Text Gauge))
+metricsGauges :: Lens' Metrics (IORef (HashMap Text Gauge))
 metricsGauges f (Metrics c g d l s) = fmap (\g' -> Metrics c g' d l s) (f g)
 
 -- | A lens into the 'Distribution's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsDistributions :: Lens' Metrics (IORef (Map Text Distribution))
+metricsDistributions :: Lens' Metrics (IORef (HashMap Text Distribution))
 metricsDistributions f (Metrics c g d l s) = fmap (\d' -> Metrics c g d' l s) (f d)
 
 -- | A lens into the 'Label's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsLabels :: Lens' Metrics (IORef (Map Text Label))
+metricsLabels :: Lens' Metrics (IORef (HashMap Text Label))
 metricsLabels f (Metrics c g d l s) = fmap (\l' -> Metrics c g d l' s) (f l)
 
 -- | A lens into the 'Store' provided by the 'Metrics'.
@@ -85,9 +84,9 @@ data Resolution
 
 diffTime :: Resolution -> TimeSpec -> TimeSpec -> Double
 diffTime res (TimeSpec seca nseca) (TimeSpec secb nsecb) =
-    let sec = seca - secb
-        nsec = nseca - nsecb
-     in convertTimeSpecTo res TimeSpec {..}
+    let sec' = seca - secb
+        nsec' = nseca - nsecb
+     in convertTimeSpecTo res (TimeSpec sec' nsec')
 
 convertTimeSpecTo :: Resolution -> TimeSpec -> Double
 convertTimeSpecTo res (TimeSpec secs' nsecs') =
