@@ -58,11 +58,11 @@ import           Control.Monad.Trans            (MonadTrans (..))
 import           Data.Hashable                  (Hashable)
 import           Data.HashMap.Strict            (HashMap)
 import qualified Data.HashMap.Strict            as HashMap
-import           Data.IORef
+import           Data.IORef                     (IORef, atomicModifyIORef',
+                                                 newIORef)
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
-import           Lens.Micro
 import           System.Clock                   (Clock (..), TimeSpec (..),
                                                  getTime)
 import           System.IO.Unsafe               (unsafeInterleaveIO)
