@@ -10,7 +10,7 @@ maintainer:          matt@sellerlabs.com
 copyright:           2017 Seller Labs, 2016 Taylor Fausak
 category:            Web
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.md, CHANGELOG.md
 cabal-version:       >=1.10
 
 library
