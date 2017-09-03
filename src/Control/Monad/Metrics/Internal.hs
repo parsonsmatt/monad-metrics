@@ -14,10 +14,10 @@ changes in here will /not/ be reflected in the major API version.
 -}
 module Control.Monad.Metrics.Internal where
 
-import           Data.IORef
 import           Data.HashMap.Strict         (HashMap)
+import           Data.IORef
 import           Data.Text                   (Text)
-import           Lens.Micro
+import           Lens.Micro                  (Lens')
 import           System.Clock                (TimeSpec (..))
 import           System.Metrics              (Store)
 import           System.Metrics.Counter      (Counter)
@@ -82,9 +82,9 @@ data Resolution
 
 diffTime :: Resolution -> TimeSpec -> TimeSpec -> Double
 diffTime res (TimeSpec seca nseca) (TimeSpec secb nsecb) =
-    let secs = seca - secb
-        nsecs = nseca - nsecb
-     in convertTimeSpecTo res (TimeSpec secs nsecs)
+    let sec' = seca - secb
+        nsec' = nseca - nsecb
+     in convertTimeSpecTo res (TimeSpec sec' nsec')
 
 convertTimeSpecTo :: Resolution -> TimeSpec -> Double
 convertTimeSpecTo res (TimeSpec secs' nsecs') =

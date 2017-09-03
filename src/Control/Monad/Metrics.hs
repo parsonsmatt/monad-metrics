@@ -52,6 +52,7 @@ module Control.Monad.Metrics
     ) where
 
 import           Control.Monad                  (liftM)
+import           Control.Monad.Catch            (MonadMask, bracket)
 import           Control.Monad.IO.Class         (MonadIO (..))
 import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
 import           Control.Monad.Trans            (MonadTrans (..))
@@ -63,8 +64,7 @@ import           Data.IORef                     (IORef, atomicModifyIORef',
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
-import           System.Clock                   (Clock (..), TimeSpec (..),
-                                                 getTime)
+import           System.Clock                   (Clock (..), getTime)
 import           System.IO.Unsafe               (unsafeInterleaveIO)
 import qualified System.Metrics                 as EKG
 import           System.Metrics.Counter         as Counter
@@ -207,19 +207,19 @@ gauge = gauge'
 -- to the specified 'Resolution'.
 --
 -- * /Since v0.1.0.0/
-timed' :: (MonadIO m, MonadMetrics m) => Resolution -> Text -> m a -> m a
-timed' resolution name action = do
-    start <- liftIO $ getTime Monotonic
-    result <- action
-    end <- liftIO $ getTime Monotonic
-    distribution name (diffTime resolution end start)
-    return result
+timed' :: (MonadIO m, MonadMetrics m, MonadMask m) => Resolution -> Text -> m a -> m a
+timed' resolution name action =
+    bracket (liftIO (getTime Monotonic)) finish (const action)
+  where
+    finish start = do
+        end <- liftIO (getTime Monotonic)
+        distribution name (diffTime resolution end start)
 
 -- | Record the time of executing the given action in seconds. Defers to
 -- 'timed''.
 --
 -- * /Since v0.1.0.0/
-timed :: (MonadIO m, MonadMetrics m) => Text -> m a -> m a
+timed :: (MonadIO m, MonadMetrics m, MonadMask m) => Text -> m a -> m a
 timed = timed' Seconds
 
 -- | Set the 'Label' to the given 'Text' value.
