@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
@@ -54,14 +55,17 @@ import           Control.Monad                  (liftM)
 import           Control.Monad.IO.Class         (MonadIO (..))
 import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
 import           Control.Monad.Trans            (MonadTrans (..))
-import           Data.IORef
 import           Data.Hashable                  (Hashable)
 import           Data.HashMap.Strict            (HashMap)
 import qualified Data.HashMap.Strict            as HashMap
+import           Data.IORef                     (IORef, atomicModifyIORef',
+                                                 newIORef)
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
-import           System.Clock                   (Clock (..), getTime)
+import           System.Clock                   (Clock (..), TimeSpec (..),
+                                                 getTime)
+import           System.IO.Unsafe               (unsafeInterleaveIO)
 import qualified System.Metrics                 as EKG
 import           System.Metrics.Counter         as Counter
 import           System.Metrics.Distribution    as Distribution
@@ -256,10 +260,14 @@ lookupOrCreate
     => (Metrics -> IORef (HashMap k a)) -> (k -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
     ref <- liftM getter getMetrics
-    container <- liftIO $ readIORef ref
-    case HashMap.lookup name container of
-        Nothing -> do
-            c <- liftIO . creator name =<< liftM _metricsStore getMetrics
-            liftIO $ modifyIORef ref (HashMap.insert name c)
-            return c
-        Just c -> return c
+    -- unsafeInterleaveIO is used here to defer creating the metric into
+    -- the 'atomicModifyIORef'' function. We lazily create the value here,
+    -- and the resulting IO action only gets run to create the metric when
+    -- the named metric is not present in the map.
+    newMetric <- liftIO . unsafeInterleaveIO . creator name =<< liftM _metricsStore getMetrics
+    liftIO $ atomicModifyIORef' ref (\container ->
+        case HashMap.lookup name container of
+            Nothing ->
+                (HashMap.insert name newMetric container, newMetric)
+            Just metric ->
+                (container, metric))
