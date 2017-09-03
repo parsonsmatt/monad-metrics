@@ -64,8 +64,7 @@ import           Data.IORef                     (IORef, atomicModifyIORef',
 import           Data.Monoid                    (mempty)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
-import           System.Clock                   (Clock (..), TimeSpec (..),
-                                                 getTime)
+import           System.Clock                   (Clock (..), getTime)
 import           System.IO.Unsafe               (unsafeInterleaveIO)
 import qualified System.Metrics                 as EKG
 import           System.Metrics.Counter         as Counter
