@@ -39,6 +39,7 @@ module Control.Monad.Metrics
     , distribution
     , timed
     , timed'
+    , timedList
     , label
     , label'
     , Resolution(..)
@@ -51,7 +52,7 @@ module Control.Monad.Metrics
     , metricsStore
     ) where
 
-import           Control.Monad                  (liftM)
+import           Control.Monad                  (liftM, forM_)
 import           Control.Monad.Catch            (MonadMask, bracket)
 import           Control.Monad.IO.Class         (MonadIO (..))
 import           Control.Monad.Reader           (MonadReader (..), ReaderT (..))
@@ -208,12 +209,31 @@ gauge = gauge'
 --
 -- * /Since v0.1.0.0/
 timed' :: (MonadIO m, MonadMetrics m, MonadMask m) => Resolution -> Text -> m a -> m a
-timed' resolution name action =
+timed' resolution name action = timedList resolution [name] action
+
+-- | Record the time taken to perform the action, under several names at once.
+-- The number is stored in a 'System.Metrics.Disribution.Distribution' and is
+-- converted to the specified 'Resolution'.
+--
+-- This is useful to store the same durations data sectioned by different criteria, e.g.:
+--
+-- @
+-- timedList Seconds ["request.byUser." <> userName, "request.byType." <> requestType] $ do
+--     ...
+-- @
+--
+-- So you will have @"request.byUser.someuser"@ storing duration distribution for requests
+-- of user @"someuser"@ of any type; and @"request.byType.sometype"@ storing
+-- duration distribution for requests of type @"sometype"@ from any user.
+--
+timedList :: (MonadIO m, MonadMetrics m, MonadMask m) => Resolution -> [Text] -> m a -> m a
+timedList resolution names action = 
     bracket (liftIO (getTime Monotonic)) finish (const action)
   where
     finish start = do
         end <- liftIO (getTime Monotonic)
-        distribution name (diffTime resolution end start)
+        forM_ names $ \name ->
+            distribution name (diffTime resolution end start)
 
 -- | Record the time of executing the given action in seconds. Defers to
 -- 'timed''.

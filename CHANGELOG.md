@@ -2,6 +2,8 @@
 
 ## Upcoming...
 
+- Introduced `timedList` method, to store the same distribution data under several names at once.
+
 ## v0.2.0.0 
 
 - Make `timed` and `timed'` require a `MonadMask` constraint for bracketing.
