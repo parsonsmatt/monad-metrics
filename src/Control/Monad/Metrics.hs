@@ -204,7 +204,7 @@ gauge :: (MonadIO m, MonadMetrics m) => Text -> Int -> m ()
 gauge = gauge'
 
 -- | Record the time taken to perform the named action. The number is
--- stored in a 'System.Metrics.Disribution.Distribution' and is converted
+-- stored in a 'System.Metrics.Distribution.Distribution' and is converted
 -- to the specified 'Resolution'.
 --
 -- * /Since v0.1.0.0/
@@ -212,7 +212,7 @@ timed' :: (MonadIO m, MonadMetrics m, MonadMask m) => Resolution -> Text -> m a 
 timed' resolution name action = timedList resolution [name] action
 
 -- | Record the time taken to perform the action, under several names at once.
--- The number is stored in a 'System.Metrics.Disribution.Distribution' and is
+-- The number is stored in a 'System.Metrics.Distribution.Distribution' and is
 -- converted to the specified 'Resolution'.
 --
 -- This is useful to store the same durations data sectioned by different criteria, e.g.:
