@@ -1,8 +1,9 @@
 # Change Log
 
-## Upcoming...
+## v0.2.1.0
 
 - Introduced `timedList` method, to store the same distribution data under several names at once.
+- Fix some documentation typos
 
 ## v0.2.0.0 
 
