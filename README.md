@@ -3,7 +3,7 @@
 
 # `monad-metrics`
 
-[![Build Status](https://travis-ci.org/sellerlabs/monad-metrics.svg?branch=master)](https://travis-ci.org/sellerlabs/monad-metrics)
+[![Build Status](https://travis-ci.org/parsonsmatt/monad-metrics.svg?branch=master)](https://travis-ci.org/parsonsmatt/monad-metrics)
 
 This library defines a convenient wrapper and API for using [EKG][] metrics in
 your application. It's heavily inspired by the metrics code that Taylor Fausak
