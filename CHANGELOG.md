@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.2.1.1
+
+- Bump `exceptions` upper bound from 0.9 to 0.10
+
 ## v0.2.1.0
 
 - Introduced `timedList` method, to store the same distribution data under several names at once.
