@@ -22,11 +22,12 @@ We'll need to start with the import/pragma boilerplate:
 
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 import qualified Control.Monad.Metrics as Metrics
-import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..))
+import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..), liftMetrics)
 import           Control.Monad.Reader
 import qualified System.Metrics        as EKG
 ```
@@ -40,7 +41,7 @@ First, you need to initialize the `Metrics` data type. You can do so using
 pass a preexisting store.
 
 ```haskell
-initializing :: Bool -> EKG.Store -> IO Metrics
+initializing :: Bool -> EKG.Store -> IO (Metrics IO)
 initializing True store = Metrics.initializeWith store
 initializing False _    = Metrics.initialize
 ```
@@ -57,7 +58,7 @@ Suppose you've got the following stack:
 ```haskell
 type App = ReaderT Config IO
 
-data Config = Config { configMetrics :: Metrics }
+data Config = Config { configMetrics :: Metrics (ReaderT Config IO) }
 ```
 
 then you can easily get the required instance with:
