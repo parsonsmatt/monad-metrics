@@ -26,10 +26,11 @@ We'll need to start with the import/pragma boilerplate:
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-import qualified Control.Monad.Metrics as Metrics
-import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..), liftMetrics)
+import qualified Control.Monad.Metrics              as Metrics
+import           Control.Monad.Metrics              (Metrics, Resolution(..), MonadMetrics(..), liftMetrics)
+import           Control.Monad.Metrics.Instances.IO ()
 import           Control.Monad.Reader
-import qualified System.Metrics        as EKG
+import qualified System.Metrics                     as EKG
 ```
 
 The `Control.Monad.Metrics` module is designed to be imported qualified.
@@ -83,7 +84,7 @@ simple i =
 
 gettingThere :: IO ()
 gettingThere = 
-    Metrics.run' (\metrics -> Config metrics) $ do
+    Metrics.run' (\metrics -> Config $ liftMetrics metrics) $ do
         liftIO $ putStrLn "it accepts a constructor"
 ```
 
