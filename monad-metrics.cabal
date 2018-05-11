@@ -16,7 +16,6 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Control.Monad.Metrics
-                     , Control.Monad.Metrics.Instances.IO
                      , Control.Monad.Metrics.Internal
   build-depends:       base                 >= 4.8     && < 5
                      , clock                >= 0.3     && < 0.8

@@ -26,11 +26,11 @@ We'll need to start with the import/pragma boilerplate:
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-import qualified Control.Monad.Metrics              as Metrics
-import           Control.Monad.Metrics              (Metrics, Resolution(..), MonadMetrics(..), liftMetrics)
-import           Control.Monad.Metrics.Instances.IO ()
+import qualified Control.Monad.Metrics as Metrics
+import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..), MetricKey)
 import           Control.Monad.Reader
-import qualified System.Metrics                     as EKG
+import           Data.Text             (Text)
+import qualified System.Metrics        as EKG
 ```
 
 The `Control.Monad.Metrics` module is designed to be imported qualified.
@@ -42,7 +42,7 @@ First, you need to initialize the `Metrics` data type. You can do so using
 pass a preexisting store.
 
 ```haskell
-initializing :: Bool -> EKG.Store -> IO (Metrics IO)
+initializing :: (MetricKey c, MetricKey g, MetricKey d, MetricKey l) => Bool -> EKG.Store -> IO (Metrics c g d l)
 initializing True store = Metrics.initializeWith store
 initializing False _    = Metrics.initialize
 ```
@@ -59,7 +59,7 @@ Suppose you've got the following stack:
 ```haskell
 type App = ReaderT Config IO
 
-data Config = Config { configMetrics :: Metrics (ReaderT Config IO) }
+data Config = Config { configMetrics :: Metrics Text Text Text Text }
 ```
 
 then you can easily get the required instance with:
@@ -84,7 +84,7 @@ simple i =
 
 gettingThere :: IO ()
 gettingThere = 
-    Metrics.run' (\metrics -> Config $ liftMetrics metrics) $ do
+    Metrics.run' (\metrics -> Config metrics) $ do
         liftIO $ putStrLn "it accepts a constructor"
 ```
 

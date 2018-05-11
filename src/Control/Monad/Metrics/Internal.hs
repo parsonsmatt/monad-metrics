@@ -6,6 +6,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
+{-# LANGUAGE RankNTypes            #-}
+
 {-|
 Module      : Control.Monad.Metrics.Internal
 Description : An easy interface to recording metrics.
@@ -49,74 +51,82 @@ type ValidMetricKeys m =
 -- field in the environment is the 'Metrics' data.
 --
 -- * /Since v0.1.0.0/
-class Monad m => MonadMetrics m where
+class Monad m => Meterable m where
     type CounterKey      m :: *
     type GaugeKey        m :: *
     type DistributionKey m :: *
     type LabelKey        m :: *
 
-    type CounterKey m      = Text
-    type GaugeKey m        = Text
-    type DistributionKey m = Text
-    type LabelKey m        = Text
+instance Meterable IO where
+    type CounterKey IO      = Text
+    type GaugeKey IO        = Text
+    type DistributionKey IO = Text
+    type LabelKey IO        = Text
 
-    getMetrics :: m (Metrics m)
+class Meterable m => MonadMetrics m where
+    getMetrics      :: m (Metrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m))
 
-instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m), IdenticalKeyTypes m (t m)) => MonadMetrics (t m) where
-    getMetrics = liftMetrics <$> lift getMetrics
+instance {-# OVERLAPPABLE #-} (Meterable m, MonadTrans t, Monad (t m)) => Meterable (t m) where
+    type CounterKey (t m)      = CounterKey m
+    type GaugeKey (t m)        = GaugeKey m
+    type DistributionKey (t m) = DistributionKey m
+    type LabelKey (t m)        = LabelKey m
 
-instance (Monad m, IdenticalKeyTypes m (ReaderT (Metrics m) m)) => MonadMetrics (ReaderT (Metrics m) m) where
-    getMetrics = liftMetrics <$> ask
+instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m), Meterable (t m)) => MonadMetrics (t m) where
+    getMetrics = lift getMetrics
 
+instance (Monad m, ck ~ CounterKey m, gk ~ GaugeKey m, dk ~ DistributionKey m, lk ~ LabelKey m, Meterable m) => MonadMetrics (ReaderT (Metrics ck gk dk lk) m) where
+    getMetrics = ask
 
 class (Eq key, Hashable key) => MetricKey key where
     toText :: key -> Text
 
+
 instance MetricKey Text where
     toText = id
 
-liftMetrics :: (MonadTrans t, IdenticalKeyTypes m (t m)) => Metrics m -> Metrics (t m)
-liftMetrics Metrics{..} = Metrics{..}
+-- liftMetrics :: (MonadTrans t, IdenticalKeyTypes m (t m)) => Metrics m -> Metrics (t m)
+-- liftMetrics Metrics{..} = Metrics{..}
 
 -- | A container for metrics used by the 'MonadMetrics' class.
 --
 -- * /Since v0.1.0.0/
-data Metrics m = Metrics
-    { _metricsCounters      :: IORef (HashMap (CounterKey m) Counter)
-    , _metricsGauges        :: IORef (HashMap (GaugeKey m) Gauge)
-    , _metricsDistributions :: IORef (HashMap (DistributionKey m) Distribution)
-    , _metricsLabels        :: IORef (HashMap (LabelKey m) Label)
+data Metrics ck gk dk lk = Metrics
+    { _metricsCounters      :: MetricKey ck => IORef (HashMap ck Counter)
+    , _metricsGauges        :: MetricKey gk => IORef (HashMap gk Gauge)
+    , _metricsDistributions :: MetricKey dk => IORef (HashMap dk Distribution)
+    , _metricsLabels        :: MetricKey lk => IORef (HashMap lk Label)
     , _metricsStore         :: Store
     }
 
 -- | A lens into the 'Counter's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsCounters :: Lens' (Metrics m) (IORef (HashMap (CounterKey m) Counter))
+metricsCounters :: MetricKey ck => Lens' (Metrics ck gk dk lk) (IORef (HashMap ck Counter))
 metricsCounters f (Metrics c g d l s) = fmap (\c' -> Metrics c' g d l s) (f c)
 
 -- | A lens into the 'Gauge's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsGauges :: Lens' (Metrics m) (IORef (HashMap (GaugeKey m) Gauge))
+metricsGauges :: MetricKey gk => Lens' (Metrics ck gk dk lk) (IORef (HashMap gk Gauge))
 metricsGauges f (Metrics c g d l s) = fmap (\g' -> Metrics c g' d l s) (f g)
 
 -- | A lens into the 'Distribution's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsDistributions :: Lens' (Metrics m) (IORef (HashMap (DistributionKey m) Distribution))
+metricsDistributions :: MetricKey dk => Lens' (Metrics ck gk dk lk) (IORef (HashMap dk Distribution))
 metricsDistributions f (Metrics c g d l s) = fmap (\d' -> Metrics c g d' l s) (f d)
 
 -- | A lens into the 'Label's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsLabels :: Lens' (Metrics m) (IORef (HashMap (LabelKey m) Label))
+metricsLabels :: MetricKey lk => Lens' (Metrics ck gk dk lk) (IORef (HashMap lk Label))
 metricsLabels f (Metrics c g d l s) = fmap (\l' -> Metrics c g d l' s) (f l)
 
 -- | A lens into the 'Store' provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsStore :: Lens' (Metrics m) Store
+metricsStore :: Lens' (Metrics ck gk dk lk) Store
 metricsStore f (Metrics c g d l s) = fmap (Metrics c g d l) (f s)
 
 -- | A type representing the resolution of time to use for the 'timed'
