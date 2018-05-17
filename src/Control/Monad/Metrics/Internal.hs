@@ -2,11 +2,9 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
-
-{-# LANGUAGE RankNTypes            #-}
 
 {-|
 Module      : Control.Monad.Metrics.Internal
@@ -38,7 +36,13 @@ import           System.Metrics.Distribution (Distribution)
 import           System.Metrics.Gauge        (Gauge)
 import           System.Metrics.Label        (Label)
 
-type IdenticalKeyTypes m m' = (CounterKey m ~ CounterKey m', GaugeKey m ~ GaugeKey m', DistributionKey m ~ DistributionKey m', LabelKey m ~ LabelKey m')
+type IdenticalKeyTypes m m' =
+    ( CounterKey m ~ CounterKey m'
+    , GaugeKey m ~ GaugeKey m'
+    , DistributionKey m ~ DistributionKey m'
+    , LabelKey m ~ LabelKey m'
+    )
+
 type ValidMetricKeys m =
     ( MetricKey (CounterKey m)
     , MetricKey (GaugeKey m)
@@ -46,11 +50,12 @@ type ValidMetricKeys m =
     , MetricKey (LabelKey m)
     )
 
--- | A type can be an instance of 'MonadMetrics' if it can provide a 'Metrics'
--- somehow. Commonly, this will be implemented as a 'ReaderT' where some
--- field in the environment is the 'Metrics' data.
+-- | We can use arbitrary key types for our 'MonadMetrics'es, but to do so we
+-- need to a way to look the types up. Sometimes we want this association even
+-- for a type that can't be a 'MonadMetrics', like 'IO'.
 --
--- * /Since v0.1.0.0/
+-- 'Meterable' provides that capability. It has a 'MonadTrans' instance, so
+-- transformer stacks will use the key types for the monad they build upon.
 class Monad m => Meterable m where
     type CounterKey      m :: *
     type GaugeKey        m :: *
@@ -63,14 +68,19 @@ instance Meterable IO where
     type DistributionKey IO = Text
     type LabelKey IO        = Text
 
-class Meterable m => MonadMetrics m where
-    getMetrics      :: m (KeyedMetrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m))
-
 instance {-# OVERLAPPABLE #-} (Meterable m, MonadTrans t, Monad (t m)) => Meterable (t m) where
     type CounterKey (t m)      = CounterKey m
     type GaugeKey (t m)        = GaugeKey m
     type DistributionKey (t m) = DistributionKey m
     type LabelKey (t m)        = LabelKey m
+
+-- | A type can be an instance of 'MonadMetrics' if it can provide a 'Metrics'
+-- somehow, and has associated key types. Commonly, this will be implemented as a 'ReaderT' where some
+-- field in the environment is the 'Metrics' data.
+--
+-- * /Since v0.1.0.0/
+class Meterable m => MonadMetrics m where
+    getMetrics      :: m (KeyedMetrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m))
 
 instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m), Meterable (t m)) => MonadMetrics (t m) where
     getMetrics = lift getMetrics
@@ -78,6 +88,7 @@ instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m), Metera
 instance (Monad m, ck ~ CounterKey m, gk ~ GaugeKey m, dk ~ DistributionKey m, lk ~ LabelKey m, Meterable m) => MonadMetrics (ReaderT (KeyedMetrics ck gk dk lk) m) where
     getMetrics = ask
 
+-- | Metric keys must be translatable to 'Text' for compatibility with EKG.
 class (Eq key, Hashable key) => MetricKey key where
     toText :: key -> Text
 
