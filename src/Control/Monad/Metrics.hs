@@ -155,13 +155,13 @@ initialize = EKG.newStore >>= initializeWith
 -- | Increment the named counter by 1.
 --
 -- * /Since v0.1.0.0/
-increment :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ CounterKey m) => key -> m ()
+increment :: (MonadIO m, MonadMetrics m, CounterKeyFor m counterKey) => counterKey -> m ()
 increment name = counter name 1
 
 -- | Adds the value to the named 'System.Metrics.Counter.Counter'.
 --
 -- * /Since v0.1.0.0/
-counter' :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ CounterKey m, Integral int) => key -> int -> m ()
+counter' :: (MonadIO m, MonadMetrics m, CounterKeyFor m counterKey, Integral int) => counterKey -> int -> m ()
 counter' =
     modifyMetric Counter.add fromIntegral EKG.createCounter _metricsCounters
 
@@ -169,27 +169,27 @@ counter' =
 -- errors.
 --
 -- * /Since v0.1.0.0/
-counter :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ CounterKey m) => key -> Int -> m ()
+counter :: (MonadIO m, MonadMetrics m, CounterKeyFor m counterKey) => counterKey -> Int -> m ()
 counter = counter'
 
 -- | Add the value to the named 'System.Metrics.Distribution.Distribution'.
 --
 -- * /Since v0.1.0.0/
-distribution :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ DistributionKey m) => key -> Double -> m ()
+distribution :: (MonadIO m, MonadMetrics m, DistributionKeyFor m distributionKey) => distributionKey -> Double -> m ()
 distribution =
     modifyMetric Distribution.add id EKG.createDistribution _metricsDistributions
 
 -- | Set the value of the named 'System.Metrics.Distribution.Gauge'.
 --
 -- * /Since v0.1.0.0/
-gauge' :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ GaugeKey m, Integral int) => key -> int -> m ()
+gauge' :: (MonadIO m, MonadMetrics m, GaugeKeyFor m gaugeKey, Integral int) => gaugeKey -> int -> m ()
 gauge' =
     modifyMetric Gauge.set fromIntegral EKG.createGauge _metricsGauges
 
 -- | A type specialized version of 'gauge'' to avoid ambiguous types.
 --
 -- * /Since v0.1.0.0/
-gauge :: (MonadIO m, MonadMetrics m, MetricKey key, GaugeKey m ~ key) => key -> Int -> m ()
+gauge :: (MonadIO m, MonadMetrics m, GaugeKeyFor m gaugeKey) => gaugeKey -> Int -> m ()
 gauge = gauge'
 
 -- | Record the time taken to perform the named action. The number is
@@ -197,7 +197,7 @@ gauge = gauge'
 -- to the specified 'Resolution'.
 --
 -- * /Since v0.1.0.0/
-timed' :: (MonadIO m, MonadMetrics m, MonadMask m, MetricKey key, key ~ DistributionKey m) => Resolution -> key -> m a -> m a
+timed' :: (MonadIO m, MonadMetrics m, MonadMask m, DistributionKeyFor m distributionKey) => Resolution -> distributionKey -> m a -> m a
 timed' resolution name action = timedList resolution [name] action
 
 -- | Record the time taken to perform the action, under several names at once.
@@ -215,7 +215,7 @@ timed' resolution name action = timedList resolution [name] action
 -- of user @"someuser"@ of any type; and @"request.byType.sometype"@ storing
 -- duration distribution for requests of type @"sometype"@ from any user.
 --
-timedList :: (MonadIO m, MonadMetrics m, MonadMask m, MetricKey key, key ~ DistributionKey m) => Resolution -> [key] -> m a -> m a
+timedList :: (MonadIO m, MonadMetrics m, MonadMask m, DistributionKeyFor m distributionKey) => Resolution -> [distributionKey] -> m a -> m a
 timedList resolution names action =
     bracket (liftIO (getTime Monotonic)) finish (const action)
   where
@@ -228,19 +228,19 @@ timedList resolution names action =
 -- 'timed''.
 --
 -- * /Since v0.1.0.0/
-timed :: (MonadIO m, MonadMetrics m, MonadMask m, MetricKey key, key ~ DistributionKey m) => key -> m a -> m a
+timed :: (MonadIO m, MonadMetrics m, MonadMask m, DistributionKeyFor m distributionKey) => distributionKey -> m a -> m a
 timed = timed' Seconds
 
 -- | Set the 'Label' to the given 'Text' value.
 --
 -- * /Since v0.1.0.0/
-label :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ LabelKey m) => key -> Text -> m ()
+label :: (MonadIO m, MonadMetrics m, LabelKeyFor m labelKey) => labelKey -> Text -> m ()
 label = modifyMetric Label.set id EKG.createLabel _metricsLabels
 
 -- | Set the 'Label' to the 'Show'n value of whatever you pass in.
 --
 -- * /Since v0.1.0.0/
-label' :: (MonadIO m, MonadMetrics m, MetricKey key, key ~ LabelKey m, Show a) => key -> a -> m ()
+label' :: (MonadIO m, MonadMetrics m, LabelKeyFor m labelKey, Show a) => labelKey -> a -> m ()
 label' l = label l . Text.pack . show
 
 -- $metrictype

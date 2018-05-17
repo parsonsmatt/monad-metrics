@@ -37,10 +37,10 @@ import           System.Metrics.Gauge        (Gauge)
 import           System.Metrics.Label        (Label)
 
 type IdenticalKeyTypes m m' =
-    ( CounterKey m ~ CounterKey m'
-    , GaugeKey m ~ GaugeKey m'
+    ( CounterKey m      ~ CounterKey m'
+    , GaugeKey m        ~ GaugeKey m'
     , DistributionKey m ~ DistributionKey m'
-    , LabelKey m ~ LabelKey m'
+    , LabelKey m        ~ LabelKey m'
     )
 
 type ValidMetricKeys m =
@@ -49,6 +49,11 @@ type ValidMetricKeys m =
     , MetricKey (DistributionKey m)
     , MetricKey (LabelKey m)
     )
+
+type CounterKeyFor      m key = (MetricKey key, key ~ CounterKey m)
+type GaugeKeyFor        m key = (MetricKey key, key ~ GaugeKey m)
+type DistributionKeyFor m key = (MetricKey key, key ~ DistributionKey m)
+type LabelKeyFor        m key = (MetricKey key, key ~ LabelKey m)
 
 -- | We can use arbitrary key types for our 'MonadMetrics'es, but to do so we
 -- need to a way to look the types up. Sometimes we want this association even
@@ -85,7 +90,7 @@ class Meterable m => MonadMetrics m where
 instance {-# OVERLAPPABLE #-} (MonadMetrics m, MonadTrans t, Monad (t m), Meterable (t m)) => MonadMetrics (t m) where
     getMetrics = lift getMetrics
 
-instance (Monad m, ck ~ CounterKey m, gk ~ GaugeKey m, dk ~ DistributionKey m, lk ~ LabelKey m, Meterable m) => MonadMetrics (ReaderT (KeyedMetrics ck gk dk lk) m) where
+instance (Monad m, CounterKeyFor m ck, GaugeKeyFor m gk, DistributionKeyFor m dk, LabelKeyFor m lk, Meterable m) => MonadMetrics (ReaderT (KeyedMetrics ck gk dk lk) m) where
     getMetrics = ask
 
 -- | Metric keys must be translatable to 'Text' for compatibility with EKG.
@@ -99,37 +104,39 @@ instance MetricKey Text where
 -- | A container for metrics used by the 'MonadMetrics' class.
 --
 -- * /Since v0.1.0.0/
-data KeyedMetrics ck gk dk lk = KeyedMetrics
-    { _metricsCounters      :: MetricKey ck => IORef (HashMap ck Counter)
-    , _metricsGauges        :: MetricKey gk => IORef (HashMap gk Gauge)
-    , _metricsDistributions :: MetricKey dk => IORef (HashMap dk Distribution)
-    , _metricsLabels        :: MetricKey lk => IORef (HashMap lk Label)
+data KeyedMetrics counterKey gaugeKey distributionKey labelKey = KeyedMetrics
+    { _metricsCounters      :: MetricKey counterKey      => IORef (HashMap counterKey Counter)
+    , _metricsGauges        :: MetricKey gaugeKey        => IORef (HashMap gaugeKey Gauge)
+    , _metricsDistributions :: MetricKey distributionKey => IORef (HashMap distributionKey Distribution)
+    , _metricsLabels        :: MetricKey labelKey        => IORef (HashMap labelKey Label)
     , _metricsStore         :: Store
     }
 
+-- | A 'Metrics' uses 'Text's for all its keys.
 type Metrics = KeyedMetrics Text Text Text Text
+
 -- | A lens into the 'Counter's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsCounters :: MetricKey ck => Lens' (KeyedMetrics ck gk dk lk) (IORef (HashMap ck Counter))
+metricsCounters :: MetricKey counterKey => Lens' (KeyedMetrics counterKey gk dk lk) (IORef (HashMap counterKey Counter))
 metricsCounters f (KeyedMetrics c g d l s) = fmap (\c' -> KeyedMetrics c' g d l s) (f c)
 
 -- | A lens into the 'Gauge's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsGauges :: MetricKey gk => Lens' (KeyedMetrics ck gk dk lk) (IORef (HashMap gk Gauge))
+metricsGauges :: MetricKey gaugeKey => Lens' (KeyedMetrics ck gaugeKey dk lk) (IORef (HashMap gaugeKey Gauge))
 metricsGauges f (KeyedMetrics c g d l s) = fmap (\g' -> KeyedMetrics c g' d l s) (f g)
 
 -- | A lens into the 'Distribution's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsDistributions :: MetricKey dk => Lens' (KeyedMetrics ck gk dk lk) (IORef (HashMap dk Distribution))
+metricsDistributions :: MetricKey distributionKey => Lens' (KeyedMetrics ck gk distributionKey lk) (IORef (HashMap distributionKey Distribution))
 metricsDistributions f (KeyedMetrics c g d l s) = fmap (\d' -> KeyedMetrics c g d' l s) (f d)
 
 -- | A lens into the 'Label's provided by the 'Metrics'.
 --
 -- * /Since v0.1.0.0/
-metricsLabels :: MetricKey lk => Lens' (KeyedMetrics ck gk dk lk) (IORef (HashMap lk Label))
+metricsLabels :: MetricKey labelKey => Lens' (KeyedMetrics ck gk dk labelKey) (IORef (HashMap labelKey Label))
 metricsLabels f (KeyedMetrics c g d l s) = fmap (\l' -> KeyedMetrics c g d l' s) (f l)
 
 -- | A lens into the 'Store' provided by the 'Metrics'.
