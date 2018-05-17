@@ -1,9 +1,8 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TypeFamilies          #-}
-
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 {-|
 Module      : Control.Monad.Metrics
