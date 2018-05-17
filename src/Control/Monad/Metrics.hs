@@ -48,6 +48,7 @@ module Control.Monad.Metrics
     -- * The Metrics Type
     -- $metrictype
     , Metrics
+    , KeyedMetrics
     , metricsCounters
     , metricsGauges
     , metricsLabels
@@ -99,7 +100,7 @@ import           Control.Monad.Metrics.Internal
 -- 'MonadMetrics' instance.
 --
 -- */Since v0.1.0.0/
-run :: (Meterable m, MonadIO m, MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => ReaderT (Metrics ck gk dk lk) m a -> m a
+run :: (Meterable m, MonadIO m, MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => ReaderT (KeyedMetrics ck gk dk lk) m a -> m a
 run = run' id
 
 -- | Adds metric recording capabilities to the given action. The first
@@ -117,7 +118,7 @@ run = run' id
 -- @
 --
 -- */Since v0.1.0.0/
-run' :: (Meterable m, MonadIO m, MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => (Metrics ck gk dk lk -> r) -> ReaderT r m a -> m a
+run' :: (Meterable m, MonadIO m, MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => (KeyedMetrics ck gk dk lk -> r) -> ReaderT r m a -> m a
 run' k action = do
     m <- liftIO initialize
     runReaderT action (k m)
@@ -125,19 +126,19 @@ run' k action = do
 -- | Initializes a 'Metrics' value with the given 'System.Metrics.Store'.
 --
 -- */Since v0.1.0.0/
-initializeWith :: (MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => EKG.Store -> IO (Metrics ck gk dk lk)
+initializeWith :: (MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => EKG.Store -> IO (KeyedMetrics ck gk dk lk)
 initializeWith _metricsStore = do
     _metricsCounters <- newIORef mempty
     _metricsDistributions <- newIORef mempty
     _metricsGauges <- newIORef mempty
     _metricsLabels <- newIORef mempty
-    return Metrics{..}
+    return KeyedMetrics{..}
 
 -- | Initializes a 'Metrics' value, creating a new 'System.Metrics.Store'
 -- for it.
 --
 -- * /Since v0.1.0.0/
-initialize :: (MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => IO (Metrics ck gk dk lk)
+initialize :: (MetricKey ck, MetricKey gk, MetricKey dk, MetricKey lk) => IO (KeyedMetrics ck gk dk lk)
 initialize = EKG.newStore >>= initializeWith
 
 -- $collecting
@@ -255,7 +256,7 @@ modifyMetric
     => (t -> t1 -> IO b) -- ^ The action to add a value to a metric.
     -> (t2 -> t1) -- ^ A conversion function from input to metric value.
     -> (Text -> EKG.Store -> IO t) -- ^ The function for creating a new metric.
-    -> (Metrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m) -> IORef (HashMap key t)) -- ^ A way of getting the current metrics.
+    -> (KeyedMetrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m) -> IORef (HashMap key t)) -- ^ A way of getting the current metrics.
     -> key -- ^ The name of the metric to use.
     -> t2 -- ^ The value the end user can provide.
     -> m b
@@ -265,7 +266,7 @@ modifyMetric adder converter creator getter name value = do
 
 lookupOrCreate
     :: (MonadMetrics m, MonadIO m, MetricKey k)
-    => (Metrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m) -> IORef (HashMap k a)) -> (Text -> EKG.Store -> IO a) -> k -> m a
+    => (KeyedMetrics (CounterKey m) (GaugeKey m) (DistributionKey m) (LabelKey m) -> IORef (HashMap k a)) -> (Text -> EKG.Store -> IO a) -> k -> m a
 lookupOrCreate getter creator name = do
     ref <- liftM getter getMetrics
     -- unsafeInterleaveIO is used here to defer creating the metric into

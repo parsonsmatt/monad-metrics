@@ -27,9 +27,8 @@ We'll need to start with the import/pragma boilerplate:
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 import qualified Control.Monad.Metrics as Metrics
-import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..), MetricKey)
+import           Control.Monad.Metrics (Metrics, Resolution(..), MonadMetrics(..))
 import           Control.Monad.Reader
-import           Data.Text             (Text)
 import qualified System.Metrics        as EKG
 ```
 
@@ -42,7 +41,7 @@ First, you need to initialize the `Metrics` data type. You can do so using
 pass a preexisting store.
 
 ```haskell
-initializing :: (MetricKey c, MetricKey g, MetricKey d, MetricKey l) => Bool -> EKG.Store -> IO (Metrics c g d l)
+initializing :: Bool -> EKG.Store -> IO Metrics
 initializing True store = Metrics.initializeWith store
 initializing False _    = Metrics.initialize
 ```
@@ -59,7 +58,7 @@ Suppose you've got the following stack:
 ```haskell
 type App = ReaderT Config IO
 
-data Config = Config { configMetrics :: Metrics Text Text Text Text }
+data Config = Config { configMetrics :: Metrics }
 ```
 
 then you can easily get the required instance with:
