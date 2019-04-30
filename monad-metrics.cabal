@@ -18,7 +18,7 @@ library
   exposed-modules:     Control.Monad.Metrics
                      , Control.Monad.Metrics.Internal
   build-depends:       base                 >= 4.8     && < 5
-                     , clock                >= 0.3     && < 0.8
+                     , clock                >= 0.3     && < 0.9
                      , ekg-core             >= 0.1.0.1 && < 0.2
                      , exceptions           >= 0.6     && < 0.11
                      , hashable             >= 1.2     && < 1.3
