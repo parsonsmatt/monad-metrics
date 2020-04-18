@@ -40,6 +40,7 @@ module Control.Monad.Metrics
     , timed
     , timed'
     , timedList
+    , timedListWith
     , label
     , label'
     , Resolution(..)
