@@ -36,6 +36,8 @@ module Control.Monad.Metrics
     , counter'
     , gauge
     , gauge'
+    , gaugeIncrement
+    , gaugeDecrement
     , distribution
     , timed
     , timed'
@@ -202,6 +204,20 @@ gauge' =
 -- * /Since v0.1.0.0/
 gauge :: (MonadIO m, MonadMetrics m) => Text -> Int -> m ()
 gauge = gauge'
+
+-- | See 'System.Metrics.Distribution.Gauge.dec'.
+--
+-- @since 0.2.2.0
+gaugeDecrement :: (MonadIO m, MonadMetrics m) => Text -> m ()
+gaugeDecrement name =
+    modifyMetric (\g -> const $ Gauge.dec g) id EKG.createGauge _metricsGauges name ()
+
+-- | See 'System.Metrics.Distribution.Gauge.inc'.
+--
+-- @since 0.2.2.0
+gaugeIncrement :: (MonadIO m, MonadMetrics m) => Text -> m ()
+gaugeIncrement name =
+    modifyMetric (\g -> const $ Gauge.inc g) id EKG.createGauge _metricsGauges name ()
 
 -- | Record the time taken to perform the named action. The number is
 -- stored in a 'System.Metrics.Distribution.Distribution' and is converted
