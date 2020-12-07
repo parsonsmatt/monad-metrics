@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.2.2.0
+
+- Add `gaugeIncrement` and `gaugeDecrement` functions [#16](https://github.com/parsonsmatt/monad-metrics/pull/16)
+
 ## v0.2.1.1
 
 - Bump `exceptions` upper bound from 0.9 to 0.10
