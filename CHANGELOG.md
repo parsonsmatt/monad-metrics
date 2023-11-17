@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.2.2.1
+
+- Bump upper bounds
+
 ## v0.2.2.0
 
 - Add `gaugeIncrement` and `gaugeDecrement` functions [#16](https://github.com/parsonsmatt/monad-metrics/pull/16)
