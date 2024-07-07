@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.2.2.2
+
+- Bump `hashable` upper bounds
+
 ## v0.2.2.1
 
 - Bump upper bounds
