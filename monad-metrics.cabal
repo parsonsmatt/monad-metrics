@@ -22,7 +22,7 @@ library
                      , ekg-core             >= 0.1.0.1 && < 0.2
                      , exceptions           >= 0.6     && < 0.11
                      , hashable             >= 1.2     && < 1.6
-                     , microlens            >= 0.2     && < 0.5
+                     , microlens            >= 0.2     && < 0.6
                      , mtl                  >= 2       && < 2.4
                      , text                               
                      , transformers         >= 0.3     && < 0.7

@@ -1,5 +1,9 @@
 # Change Log
 
+## (unreleased)
+
+- Bump microlens upper bound to 0.6
+
 ## v0.2.2.2
 
 - Bump `hashable` upper bounds
